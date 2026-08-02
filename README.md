@@ -1,48 +1,60 @@
-# 🔐 cipherlink
+# cipherlink
 
-`cipherlink` is a lightweight, secure URL redirection service built on **Cloudflare Workers**. It uses end-to-end encryption to protect destination URLs until they are decrypted by the worker at runtime.
+`cipherlink` is a Cloudflare Worker that receives an encrypted `ref` query parameter, decrypts it with X25519 plus AES-GCM, and redirects to the decrypted destination.
 
-## 🚀 How it works
+## Behavior
 
-The service listens for requests with an encrypted `ref` parameter. It then:
-1. Performs an **X25519** Diffie-Hellman key exchange using a private key stored in its environment.
-2. Derives a shared secret.
-3. Decrypts the destination URL using **AES-256-GCM**.
-4. Redirects the user to the decrypted URL.
+- Requests without `ref` redirect to `URL_BASE`.
+- Valid encrypted payloads redirect to absolute `http` or `https` URLs.
+- Malformed payloads return `400 Invalid encrypted payload`.
+- Decrypted targets with unsupported protocols return `400 Invalid redirect target`.
+- Missing or invalid required configuration returns `500 Service misconfigured`.
 
-This ensures that the final destination of a link is hidden from intermediate layers (like logs or analytics) until the moment of redirection.
+## Configuration
 
-## ✨ Features
+Set these bindings before running or deploying:
 
-- **X25519 Key Exchange**: Robust asymmetric encryption for shared secret derivation.
-- **AES-GCM**: High-performance symmetric encryption for the payload.
-- **Cloudflare Workers**: Global distribution and low latency.
-- **Privacy Oriented**: Destination URLs are never stored or transmitted in plain text.
+- `URL_BASE`: fallback absolute `http` or `https` URL.
+- `PRIVATE_KEY_RAW`: X25519 private key encoded as Base64URL raw 32-byte key material.
 
-## 🛠️ Setup
-
-### Environment Variables
-
-You need to configure the following environment variables in your Cloudflare dashboard or `wrangler.jsonc`:
-
-- `PRIVATE_KEY_RAW`: Your X25519 private key in Base64Url format.
-- `URL_BASE`: The default URL to redirect to if no `ref` parameter is provided.
-
-### Deployment
+Use Wrangler secrets for `PRIVATE_KEY_RAW`:
 
 ```bash
-npm install
-npm run deploy
+bunx wrangler secret put PRIVATE_KEY_RAW
 ```
 
-## 💻 Development
+## Development
 
-### Key Scripts
+Install dependencies:
 
-- `npm run dev`: Start a local development server using `wrangler`.
-- `npm run test`: Run the test suite using `vitest`.
-- `npm run cf-typegen`: Generate TypeScript types for your environment bindings.
+```bash
+bun install
+```
 
-## 📄 License
+Run the full local verification:
 
-MIT.
+```bash
+bun run check
+```
+
+Start the Worker locally:
+
+```bash
+bun run dev
+```
+
+Deploy:
+
+```bash
+bun run deploy
+```
+
+Regenerate Cloudflare Worker types after changing `wrangler.jsonc`:
+
+```bash
+bun run cf-typegen
+```
+
+## License
+
+MIT
